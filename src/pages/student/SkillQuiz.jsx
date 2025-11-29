@@ -1,30 +1,66 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { 
-  Brain, 
-  Clock, 
-  ChevronRight, 
-  ChevronLeft, 
+import {
+  Brain,
+  Clock,
+  ChevronRight,
+  ChevronLeft,
   CheckCircle,
   AlertCircle,
-  Play
+  Play,
 } from "lucide-react";
 import { useStudent } from "../../context/StudentContext";
 import Loader from "../../components/common/Loader";
 
 const skillCategories = [
-  { id: "python", name: "Python", icon: "🐍", questions: 15, duration: "20 min" },
-  { id: "javascript", name: "JavaScript", icon: "💛", questions: 15, duration: "20 min" },
-  { id: "react", name: "React.js", icon: "⚛️", questions: 15, duration: "20 min" },
-  { id: "ml", name: "Machine Learning", icon: "🤖", questions: 20, duration: "30 min" },
-  { id: "sql", name: "SQL & Databases", icon: "🗄️", questions: 15, duration: "20 min" },
-  { id: "dsa", name: "Data Structures", icon: "📊", questions: 20, duration: "30 min" },
+  {
+    id: "python",
+    name: "Python",
+    icon: "🐍",
+    questions: 15,
+    duration: "20 min",
+  },
+  {
+    id: "javascript",
+    name: "JavaScript",
+    icon: "💛",
+    questions: 15,
+    duration: "20 min",
+  },
+  {
+    id: "react",
+    name: "React.js",
+    icon: "⚛️",
+    questions: 15,
+    duration: "20 min",
+  },
+  {
+    id: "ml",
+    name: "Machine Learning",
+    icon: "🤖",
+    questions: 20,
+    duration: "30 min",
+  },
+  {
+    id: "sql",
+    name: "SQL & Databases",
+    icon: "🗄️",
+    questions: 15,
+    duration: "20 min",
+  },
+  {
+    id: "dsa",
+    name: "Data Structures",
+    icon: "📊",
+    questions: 20,
+    duration: "30 min",
+  },
 ];
 
 export default function SkillQuiz() {
   const navigate = useNavigate();
   const { fetchQuiz, submitQuiz, quizData, loading } = useStudent();
-  
+
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [quizStarted, setQuizStarted] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState(0);
@@ -49,54 +85,64 @@ export default function SkillQuiz() {
 
   const startQuiz = async (category) => {
     setSelectedCategory(category);
-    
+
     // In real app, fetch from API
     // const data = await fetchQuiz(category.id);
-    
+
     // Sample questions
     const sampleQuestions = [
       {
         id: 1,
         question: `What is the output of: print(type([]) is list) in ${category.name}?`,
         options: ["True", "False", "Error", "None"],
-        correct: 0
+        correct: 0,
       },
       {
         id: 2,
         question: `Which of the following is used to define a function in ${category.name}?`,
         options: ["function", "def", "func", "define"],
-        correct: 1
+        correct: 1,
       },
       {
         id: 3,
         question: "What does OOP stand for?",
-        options: ["Object Oriented Programming", "Object Optional Programming", "Optimal Object Programming", "None"],
-        correct: 0
+        options: [
+          "Object Oriented Programming",
+          "Object Optional Programming",
+          "Optimal Object Programming",
+          "None",
+        ],
+        correct: 0,
       },
       {
         id: 4,
         question: "Which data structure uses LIFO?",
         options: ["Queue", "Stack", "Array", "Linked List"],
-        correct: 1
+        correct: 1,
       },
       {
         id: 5,
         question: "What is the time complexity of binary search?",
         options: ["O(n)", "O(n²)", "O(log n)", "O(1)"],
-        correct: 2
+        correct: 2,
       },
     ];
-    
+
     setQuestions(sampleQuestions);
-    setTimeLeft(category.duration.includes("30") ? 1800 : 
-                category.duration.includes("20") ? 1200 : 600);
+    setTimeLeft(
+      category.duration.includes("30")
+        ? 1800
+        : category.duration.includes("20")
+          ? 1200
+          : 600,
+    );
     setQuizStarted(true);
   };
 
   const handleAnswerSelect = (questionId, optionIndex) => {
     setAnswers({
       ...answers,
-      [questionId]: optionIndex
+      [questionId]: optionIndex,
     });
   };
   const handleSubmitQuiz = async () => {
@@ -104,13 +150,15 @@ export default function SkillQuiz() {
     setQuizStarted(false);
     // In real app, submit to API
     // await submitQuiz(selectedCategory.id, answers);
-    navigate("/student/quiz-results", { state: { category: selectedCategory, answers, questions } });
+    navigate("/student/quiz-results", {
+      state: { category: selectedCategory, answers, questions },
+    });
   };
 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+    return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
   };
   if (loading) {
     return <Loader />;
@@ -122,7 +170,7 @@ export default function SkillQuiz() {
           <h1 className="text-3xl font-bold mb-6">Select a Skill Quiz</h1>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {skillCategories.map((category) => (
-              <div 
+              <div
                 key={category.id}
                 className="bg-gray-800 p-6 rounded-lg shadow-lg hover:shadow-xl transition cursor-pointer"
                 onClick={() => startQuiz(category)}
@@ -151,17 +199,22 @@ export default function SkillQuiz() {
             <p className="mb-4">{questions[currentQuestion].question}</p>
             <div className="space-y-3">
               {questions[currentQuestion].options.map((option, index) => (
-                <div 
+                <div
                   key={index}
                   className={`p-3 border rounded-lg cursor-pointer
-                    ${answers[questions[currentQuestion].id] === index ? 'bg-blue-600 border-blue-400' : 'bg-gray-700 border-gray-600'}
+                    ${answers[questions[currentQuestion].id] === index ? "bg-blue-600 border-blue-400" : "bg-gray-700 border-gray-600"}
                   `}
-                  
-
-
-
-
-
-
-
-
+                  onClick={() =>
+                    selectAnswer(questions[currentQuestion].id, index)
+                  }
+                >
+                  {option}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
