@@ -1,15 +1,28 @@
-import React, { useContext, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Mail, Phone, MapPin, GraduationCap,
   Edit2, Save, Upload, Sparkles,
   Award, Target, TrendingUp
 } from "lucide-react";
-import { StudentContext } from "../../context/StudentContext";
+import { useStudent } from "../../context/StudentContext";
+import Loader from "../../components/common/Loader";
 
 const StudentProfile = () => {
-  const { student } = useContext(StudentContext);
+  const { profile, loading, fetchProfile } = useStudent();
   const [isEditing, setIsEditing] = useState(false);
+
+  useEffect(() => {
+    if (!profile) {
+      fetchProfile();
+    }
+  }, [profile, fetchProfile]);
+
+  if (loading && !profile) {
+    return <Loader size="lg" text="Loading student profile..." />;
+  }
+
+  const student = profile;
 
   if (!student) {
     return (

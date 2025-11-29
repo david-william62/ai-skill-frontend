@@ -1,13 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Brain,
   Clock,
   ChevronRight,
   ChevronLeft,
-  CheckCircle,
-  AlertCircle,
-  Play,
 } from "lucide-react";
 import { useStudent } from "../../context/StudentContext";
 import Loader from "../../components/common/Loader";
@@ -57,111 +53,167 @@ const skillCategories = [
   },
 ];
 
+const buildSampleQuestions = (category) => {
+  const name = category?.name || "this topic";
+  const idPrefix = category?.id || "general";
+
+  return [
+    {
+      id: `${idPrefix}-1`,
+      question: `What is the output of: print(type([]) is list) in ${name}?`,
+      options: ["True", "False", "Error", "None"],
+      correct: 0,
+    },
+    {
+      id: `${idPrefix}-2`,
+      question: `Which keyword is used to define a function in ${name}?`,
+      options: ["function", "def", "func", "define"],
+      correct: 1,
+    },
+    {
+      id: `${idPrefix}-3`,
+      question: "What does OOP stand for?",
+      options: [
+        "Object Oriented Programming",
+        "Object Optional Programming",
+        "Optimal Object Programming",
+        "None",
+      ],
+      correct: 0,
+    },
+    {
+      id: `${idPrefix}-4`,
+      question: "Which data structure uses LIFO?",
+      options: ["Queue", "Stack", "Array", "Linked List"],
+      correct: 1,
+    },
+    {
+      id: `${idPrefix}-5`,
+      question: "What is the time complexity of binary search?",
+      options: ["O(n)", "O(n²)", "O(log n)", "O(1)"],
+      correct: 2,
+    },
+  ];
+};
+
+const getDurationInSeconds = (label = "") => {
+  const match = label.match(/(\d+)/);
+  const minutes = match ? parseInt(match[1], 10) : 15;
+  return minutes * 60;
+};
+
+const formatSeconds = (seconds) => {
+  const safeSeconds = Math.max(seconds, 0);
+  const mins = Math.floor(safeSeconds / 60);
+  const secs = safeSeconds % 60;
+  return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
+};
+
 export default function SkillQuiz() {
   const navigate = useNavigate();
-  const { fetchQuiz, submitQuiz, quizData, loading } = useStudent();
+  const { submitQuiz, loading } = useStudent();
 
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [quizStarted, setQuizStarted] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState({});
   const [timeLeft, setTimeLeft] = useState(0);
+  const [quizDuration, setQuizDuration] = useState(0);
   const [showConfirm, setShowConfirm] = useState(false);
 
   // Sample questions (in real app, these come from API)
   const [questions, setQuestions] = useState([]);
 
-  useEffect(() => {
-    let timer;
-    if (quizStarted && timeLeft > 0) {
-      timer = setInterval(() => {
-        setTimeLeft((prev) => prev - 1);
-      }, 1000);
-    } else if (timeLeft === 0 && quizStarted) {
-      handleSubmitQuiz();
+  const handleSubmitQuiz = useCallback(async (autoSubmit = false) => {
+    if (!questions.length || !selectedCategory) {
+      return;
     }
+
+    setShowConfirm(false);
+    setQuizStarted(false);
+
+    const totalQuestions = questions.length;
+    const correctAnswers = questions.reduce((count, question) => {
+      return answers[question.id] === question.correct ? count + 1 : count;
+    }, 0);
+
+    const score = totalQuestions ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
+    const timeTaken = quizDuration ? quizDuration - timeLeft : 0;
+    const resultPayload = {
+      category: selectedCategory.name,
+      score,
+      correct: correctAnswers,
+      total: totalQuestions,
+      timeTaken: formatSeconds(timeTaken),
+    };
+
+    localStorage.setItem("quizResult", JSON.stringify(resultPayload));
+
+    try {
+      if (submitQuiz && selectedCategory.id) {
+        await submitQuiz(selectedCategory.id, answers);
+      }
+    } catch (error) {
+      console.error("Failed to submit quiz:", error);
+    }
+
+    navigate("/student/quiz-result", {
+      state: resultPayload,
+      replace: autoSubmit,
+    });
+  }, [answers, navigate, questions, quizDuration, selectedCategory, submitQuiz, timeLeft]);
+
+  useEffect(() => {
+    if (!quizStarted) {
+      return;
+    }
+
+    if (timeLeft <= 0) {
+      handleSubmitQuiz(true);
+      return;
+    }
+
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => Math.max(prev - 1, 0));
+    }, 1000);
+
     return () => clearInterval(timer);
-  }, [quizStarted, timeLeft]);
+  }, [quizStarted, timeLeft, handleSubmitQuiz]);
 
-  const startQuiz = async (category) => {
+  const startQuiz = (category) => {
     setSelectedCategory(category);
+    setCurrentQuestion(0);
+    setAnswers({});
+    setShowConfirm(false);
 
-    // In real app, fetch from API
-    // const data = await fetchQuiz(category.id);
-
-    // Sample questions
-    const sampleQuestions = [
-      {
-        id: 1,
-        question: `What is the output of: print(type([]) is list) in ${category.name}?`,
-        options: ["True", "False", "Error", "None"],
-        correct: 0,
-      },
-      {
-        id: 2,
-        question: `Which of the following is used to define a function in ${category.name}?`,
-        options: ["function", "def", "func", "define"],
-        correct: 1,
-      },
-      {
-        id: 3,
-        question: "What does OOP stand for?",
-        options: [
-          "Object Oriented Programming",
-          "Object Optional Programming",
-          "Optimal Object Programming",
-          "None",
-        ],
-        correct: 0,
-      },
-      {
-        id: 4,
-        question: "Which data structure uses LIFO?",
-        options: ["Queue", "Stack", "Array", "Linked List"],
-        correct: 1,
-      },
-      {
-        id: 5,
-        question: "What is the time complexity of binary search?",
-        options: ["O(n)", "O(n²)", "O(log n)", "O(1)"],
-        correct: 2,
-      },
-    ];
-
-    setQuestions(sampleQuestions);
-    setTimeLeft(
-      category.duration.includes("30")
-        ? 1800
-        : category.duration.includes("20")
-          ? 1200
-          : 600,
-    );
+    const preparedQuestions = buildSampleQuestions(category);
+    setQuestions(preparedQuestions);
+    const durationSeconds = getDurationInSeconds(category.duration);
+    setQuizDuration(durationSeconds);
+    setTimeLeft(durationSeconds);
     setQuizStarted(true);
   };
 
   const handleAnswerSelect = (questionId, optionIndex) => {
-    setAnswers({
-      ...answers,
+    setAnswers((prev) => ({
+      ...prev,
       [questionId]: optionIndex,
-    });
-  };
-  const handleSubmitQuiz = async () => {
-    setShowConfirm(false);
-    setQuizStarted(false);
-    // In real app, submit to API
-    // await submitQuiz(selectedCategory.id, answers);
-    navigate("/student/quiz-results", {
-      state: { category: selectedCategory, answers, questions },
-    });
+    }));
   };
 
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
+  const handleNextQuestion = () => {
+    setCurrentQuestion((prev) => Math.min(prev + 1, questions.length - 1));
   };
-  if (loading) {
-    return <Loader />;
+
+  const handlePreviousQuestion = () => {
+    setCurrentQuestion((prev) => Math.max(prev - 1, 0));
+  };
+
+  const activeQuestion = quizStarted ? questions[currentQuestion] : null;
+  const allAnswered = questions.length > 0 && Object.keys(answers).length === questions.length;
+
+  if (loading && !quizStarted) {
+    return <Loader text="Preparing your personalized quizzes..." />;
   }
   return (
     <div className="min-h-screen bg-gray-900 text-white p-6">
@@ -183,34 +235,87 @@ export default function SkillQuiz() {
             ))}
           </div>
         </div>
+      ) : !activeQuestion ? (
+        <Loader text="Loading questions..." />
       ) : (
         <div>
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-2xl font-bold">{selectedCategory.name} Quiz</h2>
             <div className="flex items-center space-x-4">
               <Clock className="mr-1" />
-              <span>{formatTime(timeLeft)}</span>
+              <span>{formatSeconds(timeLeft)}</span>
             </div>
           </div>
           <div className="bg-gray-800 p-6 rounded-lg shadow-lg">
             <h3 className="text-xl font-semibold mb-4">
               Question {currentQuestion + 1} of {questions.length}
             </h3>
-            <p className="mb-4">{questions[currentQuestion].question}</p>
+            <p className="mb-4">{activeQuestion.question}</p>
             <div className="space-y-3">
-              {questions[currentQuestion].options.map((option, index) => (
+              {activeQuestion.options.map((option, index) => (
                 <div
                   key={index}
                   className={`p-3 border rounded-lg cursor-pointer
-                    ${answers[questions[currentQuestion].id] === index ? "bg-blue-600 border-blue-400" : "bg-gray-700 border-gray-600"}
+                    ${answers[activeQuestion.id] === index ? "bg-blue-600 border-blue-400" : "bg-gray-700 border-gray-600"}
                   `}
-                  onClick={() =>
-                    selectAnswer(questions[currentQuestion].id, index)
-                  }
+                  onClick={() => handleAnswerSelect(activeQuestion.id, index)}
                 >
                   {option}
                 </div>
               ))}
+            </div>
+            <div className="flex flex-col sm:flex-row justify-between gap-4 mt-8">
+              <button
+                onClick={handlePreviousQuestion}
+                disabled={currentQuestion === 0}
+                className="flex items-center justify-center px-4 py-2 bg-white/10 border border-white/20 rounded-lg disabled:opacity-40"
+              >
+                <ChevronLeft className="mr-2" size={18} />
+                Previous
+              </button>
+              {currentQuestion < questions.length - 1 ? (
+                <button
+                  onClick={handleNextQuestion}
+                  className="flex items-center justify-center px-4 py-2 bg-cyan-500 text-black rounded-lg hover:bg-cyan-400"
+                >
+                  Next
+                  <ChevronRight className="ml-2" size={18} />
+                </button>
+              ) : (
+                <button
+                  onClick={() => setShowConfirm(true)}
+                  disabled={!allAnswered}
+                  className="flex-1 px-4 py-2 bg-green-500 text-black rounded-lg font-semibold disabled:opacity-40"
+                >
+                  Submit Quiz
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showConfirm && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center">
+          <div className="bg-gray-800 rounded-2xl p-8 max-w-md w-full text-center space-y-6">
+            <h3 className="text-2xl font-semibold">Submit Quiz?</h3>
+            <p className="text-white/70">
+              You answered {Object.keys(answers).length} out of {questions.length} questions.
+              {allAnswered ? " Ready to see your score?" : " You can still review unanswered questions."}
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <button
+                onClick={() => setShowConfirm(false)}
+                className="flex-1 px-4 py-2 border border-white/30 rounded-lg hover:bg-white/10"
+              >
+                Keep Practicing
+              </button>
+              <button
+                onClick={() => handleSubmitQuiz()}
+                className="flex-1 px-4 py-2 bg-green-500 text-black rounded-lg font-semibold"
+              >
+                Submit Now
+              </button>
             </div>
           </div>
         </div>

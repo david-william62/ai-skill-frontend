@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { studentService } from '../services/studentService';
 import { resumeService } from '../services/resumeService';
-import { recommendationService } from '../services/recommendationService';
+import { recommendationService } from '../services/RecommendationService';
 
 const StudentContext = createContext(null);
 
@@ -11,7 +11,17 @@ export function StudentProvider({ children }) {
   const [recommendations, setRecommendations] = useState([]);
   const [skillGap, setSkillGap] = useState(null);
   const [quizResults, setQuizResults] = useState([]);
+  const [resumeData, setResumeData] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  const updateResumeData = useCallback((data) => {
+    setResumeData(data);
+    if (Array.isArray(data?.skills) && data.skills.length) {
+      setSkills(data.skills);
+    } else if (Array.isArray(data?.extractedSkills) && data.extractedSkills.length) {
+      setSkills(data.extractedSkills);
+    }
+  }, []);
 
   const fetchProfile = useCallback(async () => {
     setLoading(true);
@@ -39,8 +49,12 @@ export function StudentProvider({ children }) {
   const uploadResume = async (file) => {
     try {
       const result = await resumeService.upload(file);
-      setSkills(result.extractedSkills);
-      return { success: true, skills: result.extractedSkills };
+      const extracted = result?.extractedSkills || result?.skills || [];
+      if (extracted.length) {
+        setSkills(extracted);
+      }
+      updateResumeData(result);
+      return { success: true, skills: extracted };
     } catch (error) {
       return { success: false, message: error.message };
     }
@@ -59,6 +73,11 @@ export function StudentProvider({ children }) {
   }, []);
 
   const fetchSkillGap = useCallback(async (internshipId) => {
+    if (!internshipId) {
+      console.warn('fetchSkillGap called without an internship identifier');
+      return null;
+    }
+
     setLoading(true);
     try {
       const data = await recommendationService.getSkillGap(internshipId);
@@ -72,9 +91,9 @@ export function StudentProvider({ children }) {
     }
   }, []);
 
-  const submitQuiz = async (answers) => {
+  const submitQuiz = async (quizId, answers) => {
     try {
-      const result = await studentService.submitQuiz(answers);
+      const result = await studentService.submitQuiz(quizId, answers);
       setQuizResults((prev) => [...prev, result]);
       return { success: true, result };
     } catch (error) {
@@ -90,10 +109,12 @@ export function StudentProvider({ children }) {
         recommendations,
         skillGap,
         quizResults,
+        resumeData,
         loading,
         fetchProfile,
         updateProfile,
         uploadResume,
+        updateResumeData,
         fetchRecommendations,
         fetchSkillGap,
         submitQuiz,

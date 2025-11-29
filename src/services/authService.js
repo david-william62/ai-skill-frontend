@@ -25,3 +25,5 @@ export const authService = {
     return api.post('/auth/refresh-token');
   },
 };
+
+export default authService;

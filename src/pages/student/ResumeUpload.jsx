@@ -1,13 +1,13 @@
-import React, { useState, useCallback, useContext } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Upload, File, X, CheckCircle, AlertCircle, FileText } from 'lucide-react';
 import { resumeService } from '../../services/resumeService';
-import { StudentContext } from '../../context/StudentContext';
+import { useStudent } from '../../context/StudentContext';
 import toast from 'react-hot-toast';
 import Loader from '../../components/common/Loader';
 
 export default function ResumeUpload() {
-  const { updateResumeData } = useContext(StudentContext);
+  const { updateResumeData } = useStudent();
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [parsing, setParsing] = useState(false);
@@ -51,7 +51,7 @@ export default function ResumeUpload() {
         setUploadProgress(prev => Math.min(prev + 10, 90));
       }, 200);
 
-      const response = await resumeService.uploadResume(file);
+      const response = await resumeService.upload(file);
       
       clearInterval(progressInterval);
       setUploadProgress(100);
@@ -60,7 +60,11 @@ export default function ResumeUpload() {
       
       // Parse resume
       setParsing(true);
-      const parseResponse = await resumeService.parseResume(response.fileId);
+      const resumeId = response?.fileId || response?.id;
+      if (!resumeId) {
+        throw new Error('Unable to determine resume identifier');
+      }
+      const parseResponse = await resumeService.parse(resumeId);
       setParsedData(parseResponse);
       updateResumeData(parseResponse);
       toast.success('Resume parsed successfully!');

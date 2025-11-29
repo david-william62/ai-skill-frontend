@@ -1,6 +1,10 @@
 import api from './api';
 
 export const studentService = {
+  getDashboardStats: async () => {
+    return api.get('/student/dashboard');
+  },
+
   getProfile: async () => {
     return api.get('/student/profile');
   },
@@ -41,3 +45,5 @@ export const studentService = {
     return api.get('/student/applications');
   },
 };
+
+export default studentService;

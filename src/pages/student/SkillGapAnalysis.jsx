@@ -13,63 +13,64 @@ import SkillChart from "../../components/charts/SkillChart";
 import MatchScoreChart from "../../components/charts/MatchScoreChart";
 import Loader from "../../components/common/Loader";
 
+const DEFAULT_ANALYSIS = {
+  overallScore: 72,
+  currentSkills: [
+    { name: "Python", level: 85, status: "strong" },
+    { name: "JavaScript", level: 75, status: "strong" },
+    { name: "React", level: 70, status: "moderate" },
+    { name: "Machine Learning", level: 45, status: "weak" },
+    { name: "SQL", level: 80, status: "strong" },
+    { name: "Docker", level: 30, status: "weak" },
+    { name: "AWS", level: 25, status: "weak" },
+    { name: "Git", level: 90, status: "strong" },
+  ],
+  targetRole: "Machine Learning Engineer",
+  requiredSkills: [
+    { name: "Python", required: 90, current: 85, gap: 5 },
+    { name: "Machine Learning", required: 85, current: 45, gap: 40 },
+    { name: "TensorFlow/PyTorch", required: 80, current: 30, gap: 50 },
+    { name: "SQL", required: 70, current: 80, gap: -10 },
+    { name: "Docker", required: 60, current: 30, gap: 30 },
+    { name: "AWS/Cloud", required: 50, current: 25, gap: 25 },
+  ],
+  recommendations: [
+    {
+      skill: "Machine Learning",
+      priority: "High",
+      resources: [
+        { name: "Andrew Ng's ML Course", type: "Course", link: "#" },
+        { name: "Hands-On ML Book", type: "Book", link: "#" },
+      ],
+    },
+    {
+      skill: "TensorFlow/PyTorch",
+      priority: "High",
+      resources: [
+        { name: "TensorFlow Official Tutorial", type: "Tutorial", link: "#" },
+        { name: "PyTorch Deep Learning", type: "Course", link: "#" },
+      ],
+    },
+    {
+      skill: "Docker",
+      priority: "Medium",
+      resources: [
+        { name: "Docker for Beginners", type: "Course", link: "#" },
+        { name: "Docker Documentation", type: "Docs", link: "#" },
+      ],
+    },
+  ],
+};
+
 export default function SkillGapAnalysis() {
   const { skillGap, loading, fetchSkillGap } = useStudent();
   const [selectedRole, setSelectedRole] = useState("ml-engineer");
 
   useEffect(() => {
-    fetchSkillGap();
-  }, []);
+    fetchSkillGap(selectedRole);
+  }, [fetchSkillGap, selectedRole]);
 
-  // Sample data (in real app, comes from API)
-  const analysisData = {
-    overallScore: 72,
-    currentSkills: [
-      { name: "Python", level: 85, status: "strong" },
-      { name: "JavaScript", level: 75, status: "strong" },
-      { name: "React", level: 70, status: "moderate" },
-      { name: "Machine Learning", level: 45, status: "weak" },
-      { name: "SQL", level: 80, status: "strong" },
-      { name: "Docker", level: 30, status: "weak" },
-      { name: "AWS", level: 25, status: "weak" },
-      { name: "Git", level: 90, status: "strong" },
-    ],
-    targetRole: "Machine Learning Engineer",
-    requiredSkills: [
-      { name: "Python", required: 90, current: 85, gap: 5 },
-      { name: "Machine Learning", required: 85, current: 45, gap: 40 },
-      { name: "TensorFlow/PyTorch", required: 80, current: 30, gap: 50 },
-      { name: "SQL", required: 70, current: 80, gap: -10 },
-      { name: "Docker", required: 60, current: 30, gap: 30 },
-      { name: "AWS/Cloud", required: 50, current: 25, gap: 25 },
-    ],
-    recommendations: [
-      {
-        skill: "Machine Learning",
-        priority: "High",
-        resources: [
-          { name: "Andrew Ng's ML Course", type: "Course", link: "#" },
-          { name: "Hands-On ML Book", type: "Book", link: "#" },
-        ],
-      },
-      {
-        skill: "TensorFlow/PyTorch",
-        priority: "High",
-        resources: [
-          { name: "TensorFlow Official Tutorial", type: "Tutorial", link: "#" },
-          { name: "PyTorch Deep Learning", type: "Course", link: "#" },
-        ],
-      },
-      {
-        skill: "Docker",
-        priority: "Medium",
-        resources: [
-          { name: "Docker for Beginners", type: "Course", link: "#" },
-          { name: "Docker Documentation", type: "Docs", link: "#" },
-        ],
-      },
-    ],
-  };
+  const analysisData = skillGap || DEFAULT_ANALYSIS;
 
   const roles = [
     { id: "ml-engineer", name: "ML Engineer" },
